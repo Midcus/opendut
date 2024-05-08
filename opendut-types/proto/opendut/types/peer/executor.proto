@@ -25,7 +25,7 @@ message Container {
   repeated ContainerPortSpec ports = 7;
   ContainerCommand command = 8;
   repeated ContainerCommandArgument args = 9;
-  repeated Precondition preconditions = 10;
+  Precondition preconditions = 10;
   ResultsUrl results_url = 11;
 }
 

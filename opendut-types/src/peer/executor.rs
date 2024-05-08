@@ -4,6 +4,8 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
+use crate::proto::ConversionError;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutorDescriptors {
     pub executors: Vec<ExecutorDescriptor>,
@@ -24,7 +26,7 @@ pub enum ExecutorDescriptor {
         ports: Vec<ContainerPortSpec>,
         command: ContainerCommand,
         args: Vec<ContainerCommandArgument>,
-        preconditions: Vec<Preconditions>,
+        preconditions: Precondition,
         results_url: ResultsUrl
     }
 }
@@ -492,21 +494,76 @@ impl fmt::Display for ContainerCommandArgument {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Preconditions {
-    name: String,
-    value: String,
+#[derive(thiserror::Error, Clone, Debug)]
+pub enum IllegalDevicePrecondition{
+    #[error("Device id must not be empty.")]
+    EmptyDeviceID,
 }
 
-impl Preconditions {
-    pub fn name(&self) -> &str {
-        self.name.as_str()
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DevicePrecondition {
+    device_id: String,
+    clamp15: String,
+    clamp30: String,
+}
+
+impl DevicePrecondition {
+    pub fn new(device_id: impl Into<String>, clamp15: impl Into<String>, clamp30: impl Into<String>) -> Result<Self, IllegalDevicePrecondition> {
+        let device_id= device_id.into();
+        if device_id.is_empty() {
+            Err(IllegalDevicePrecondition::EmptyDeviceID)
+        } else {
+            Ok(Self{device_id, clamp15: clamp15.into(), clamp30: clamp30.into()})
+        }
     }
-    
-    pub fn value(&self) -> &str {
-        self.value.as_str()
+
+    pub fn device_id(&self) -> &str {
+        self.device_id.as_str()
+    }
+
+    pub fn clamp15(&self) -> &str {
+        self.clamp15.as_str()
+    }
+
+    pub fn clamp30(&self) -> &str {
+        self.clamp30.as_str()
     }
 }
+
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Precondition {
+    pub device_preconditions: Vec<DevicePrecondition>
+}
+
+impl Precondition {
+    pub fn device_preconditions(&self) -> &Vec<DevicePrecondition> {
+        &self.device_preconditions
+    }
+
+    pub fn set_device_preconditions(&mut self, device_preconditions: Vec<DevicePrecondition>) {
+        self.device_preconditions = device_preconditions;
+    }
+
+    pub fn add_device(&mut self, device: DevicePrecondition) {
+        self.device_preconditions.push(device);
+    }
+}
+
+impl TryFrom<Vec<DevicePrecondition>> for Precondition {
+    type Error = ConversionError;
+
+    fn try_from(value: Vec<DevicePrecondition>) -> Result<Self, Self::Error> {
+        let device_preconditions = value.into_iter()
+            .map(DevicePrecondition::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Precondition {
+            device_preconditions,
+        })
+    }
+}
+
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ResultsUrl(String);
@@ -579,3 +636,4 @@ impl fmt::Display for ResultsUrl {
 
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum IllegalContainerConfiguration {}
+

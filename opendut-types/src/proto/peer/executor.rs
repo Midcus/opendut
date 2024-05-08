@@ -62,7 +62,7 @@ impl From<crate::peer::executor::ExecutorDescriptor> for ExecutorDescriptor {
                             ports: ports.into_iter().map(|port| port.into()).collect(),
                             command: Some(command.into()),
                             args: args.into_iter().map(|arg| arg.into()).collect(),
-                            preconditions: preconditions.into_iter().map(|precondition| precondition.into()).collect(),
+                            preconditions: Some(preconditions.into()),
                             results_url: Some(results_url.into()), 
                         }
                     ))
@@ -132,8 +132,10 @@ impl TryFrom<ExecutorDescriptor> for crate::peer::executor::ExecutorDescriptor {
                     .map(TryFrom::try_from)
                     .collect::<Result<_, _>>()?;
                 let preconditions = preconditions
-                    .into_iter();
+                    .ok_or(ErrorBuilder::field_not_set("preconditions"))?
+                    .try_into()?;
                 let results_url = results_url
+                    .ok_or(ErrorBuilder::field_not_set("results_url"))?
                     .try_into()?;
                 crate::peer::executor::ExecutorDescriptor::Container {
                     engine,
@@ -349,6 +351,70 @@ impl TryFrom<ContainerCommandArgument> for crate::peer::executor::ContainerComma
         type ErrorBuilder = ConversionErrorBuilder<ContainerCommandArgument, crate::peer::executor::ContainerCommandArgument>;
 
         crate::peer::executor::ContainerCommandArgument::try_from(value.value)
+            .map_err(|cause| ErrorBuilder::message(cause.to_string()))
+    }
+}
+
+impl From<crate::peer::executor::ResultsUrl> for ResultsUrl {
+    fn from(value: crate::peer::executor::ResultsUrl) -> Self {
+        Self {
+            value: value.into()
+        }
+    }
+}
+
+impl TryFrom<ResultsUrl> for crate::peer::executor::ResultsUrl{
+    type Error = ConversionError;
+
+    fn try_from(value: ResultsUrl) -> Result<Self, Self::Error> {
+        type ErrorBuilder = ConversionErrorBuilder<ResultsUrl, crate::peer::executor::ResultsUrl>;
+
+        crate::peer::executor::ResultsUrl::try_from(value.value)
+            .map_err(|cause| ErrorBuilder::message(cause.to_string()))
+    }
+}
+
+impl From<crate::peer::executor::DevicePrecondition> for DevicePrecondition{
+    fn from(value: crate::peer::executor::DevicePrecondition) -> Self {
+        Self {
+            device_id: value.device_id().to_string(),
+            clamp15: value.clamp15().to_string(),
+            clamp30: value.clamp30().to_string(),
+        }
+    }
+}
+
+impl TryFrom<DevicePrecondition> for crate::peer::executor::DevicePrecondition {
+    type Error = ConversionError;
+
+    fn try_from(value: DevicePrecondition) -> Result<Self, Self::Error> {
+        type ErrorBuilder = ConversionErrorBuilder<DevicePrecondition, crate::peer::executor::DevicePrecondition>;
+        
+        crate::peer::executor::DevicePrecondition::new(value.device_id, value.clamp15, value.clamp30)
+            .map_err(|cause| ErrorBuilder::message(cause.to_string()))
+    }
+}
+
+impl From<crate::peer::executor::Precondition> for Precondition {
+    fn from(value: crate::peer::executor::Precondition) -> Self {
+        Self {
+            device_preconditions: value.device_preconditions().clone().into_iter().map(DevicePrecondition::from).collect(),
+        }
+    }
+}
+
+impl TryFrom<Precondition> for crate::peer::executor::Precondition{
+    type Error = ConversionError;
+
+    fn try_from(value: Precondition) -> Result<Self, Self::Error> {
+        type ErrorBuilder = ConversionErrorBuilder<Precondition, crate::peer::executor::Precondition>;
+
+        let device_preconditions = value.device_preconditions.into_iter()
+            .map(crate::peer::executor::DevicePrecondition::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        
+        crate::peer::executor::Precondition::try_from(device_preconditions)
             .map_err(|cause| ErrorBuilder::message(cause.to_string()))
     }
 }

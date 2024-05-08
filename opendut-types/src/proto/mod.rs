@@ -4,7 +4,7 @@ pub mod topology;
 pub mod util;
 pub mod vpn;
 
-use std::marker::PhantomData;
+use std::{convert::Infallible, marker::PhantomData};
 
 #[derive(thiserror::Error, Debug, Eq, PartialEq)]
 #[error("Could not convert from `{from}` to `{to}`: {details}")]
@@ -21,6 +21,13 @@ impl ConversionError {
             to: std::any::type_name::<To>(),
             details: details.into(),
         }
+    }
+}
+
+impl From<Infallible> for ConversionError {
+    fn from(_: Infallible) -> Self {
+        // Since Infallible can never actually be created, we can just panic here
+        panic!("Attempted to convert Infallible into ConversionError")
     }
 }
 
