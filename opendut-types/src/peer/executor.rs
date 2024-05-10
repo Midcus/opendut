@@ -3,6 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
+use uuid::Uuid;
+use std::hash::Hash;
+use std::hash::Hasher;
 
 use crate::proto::ConversionError;
 
@@ -502,23 +505,23 @@ pub enum IllegalDevicePrecondition{
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DevicePrecondition {
-    device_id: String,
+    device_id: Uuid,
     clamp15: String,
     clamp30: String,
 }
 
 impl DevicePrecondition {
-    pub fn new(device_id: impl Into<String>, clamp15: impl Into<String>, clamp30: impl Into<String>) -> Result<Self, IllegalDevicePrecondition> {
+    pub fn new(device_id: impl Into<Uuid>, clamp15: impl Into<String>, clamp30: impl Into<String>) -> Result<Self, IllegalDevicePrecondition> {
         let device_id= device_id.into();
-        if device_id.is_empty() {
+        if device_id.is_nil() {
             Err(IllegalDevicePrecondition::EmptyDeviceID)
         } else {
             Ok(Self{device_id, clamp15: clamp15.into(), clamp30: clamp30.into()})
         }
     }
 
-    pub fn device_id(&self) -> &str {
-        self.device_id.as_str()
+    pub fn device_id(&self) -> Uuid {
+        self.device_id
     }
 
     pub fn clamp15(&self) -> &str {
@@ -527,6 +530,14 @@ impl DevicePrecondition {
 
     pub fn clamp30(&self) -> &str {
         self.clamp30.as_str()
+    }
+}
+
+impl Hash for DevicePrecondition {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.device_id.hash(state);
+        self.clamp15.hash(state);
+        self.clamp30.hash(state);
     }
 }
 
@@ -547,6 +558,28 @@ impl Precondition {
 
     pub fn add_device(&mut self, device: DevicePrecondition) {
         self.device_preconditions.push(device);
+    }
+}
+
+impl Default for Precondition {
+    fn default() -> Self {
+        Precondition {
+            device_preconditions: vec![
+                DevicePrecondition {
+                    device_id: Uuid::parse_str("a1a2a3a4-a5a6-a7a8-a9a0-b1b2b3b4b5b6").unwrap(), 
+                    clamp15: String::new(),
+                    clamp30: String::new(),
+                },
+            ]
+        }
+    }
+}
+
+impl Hash for Precondition {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for precondition in &self.device_preconditions {
+            precondition.hash(state);
+        }
     }
 }
 
@@ -576,6 +609,12 @@ impl ResultsUrl {
     }
 }
 
+impl Hash for ResultsUrl {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
 #[derive(thiserror::Error, Clone, Debug)]
 pub enum IllegalResultsUrl  {
     #[error(
@@ -585,6 +624,12 @@ pub enum IllegalResultsUrl  {
         value: String,
         expected: usize,
         actual: usize,
+    }
+}
+
+impl Default for ResultsUrl {
+    fn default() -> Self {
+        ResultsUrl(String::from("exampleurl"))
     }
 }
 

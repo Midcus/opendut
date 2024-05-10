@@ -28,7 +28,9 @@ pub fn setup_executors(executors: Vec<peer::configuration::Parameter<ExecutorDes
                 envs,
                 ports,
                 command,
-                args
+                args,
+                preconditions,
+                results_url
             } => {
                 let engine = match engine {
                     Engine::Docker => { "docker" }

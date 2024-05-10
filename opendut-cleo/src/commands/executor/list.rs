@@ -57,7 +57,9 @@ fn filter_connected_peers(
             envs,
             ports,
             command,
-            args
+            args,
+            preconditions,
+            results_url
         } = executor {
             let args = args.iter().map(|arg| arg.to_string()).collect::<Vec<_>>();
             let volumes = volumes.iter().map(|volume| volume.to_string()).collect::<Vec<_>>();

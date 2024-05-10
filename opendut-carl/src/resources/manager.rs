@@ -117,9 +117,11 @@ mod test {
                     envs: vec![], 
                     ports: vec![], 
                     command: ContainerCommand::Default, 
-                    args: vec![] }],
+                    args: vec![],
+                    preconditions: Default::default(),
+                    results_url: Default::default()}],
             }
-        };
+        }; 
 
         let cluster_resource_id = ClusterId::random();
         let cluster_configuration = ClusterConfiguration {

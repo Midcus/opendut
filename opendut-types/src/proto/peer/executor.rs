@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 use crate::proto::{ConversionError, ConversionErrorBuilder};
 
 include!(concat!(env!("OUT_DIR"), "/opendut.types.peer.executor.rs"));
@@ -390,7 +392,7 @@ impl TryFrom<DevicePrecondition> for crate::peer::executor::DevicePrecondition {
     fn try_from(value: DevicePrecondition) -> Result<Self, Self::Error> {
         type ErrorBuilder = ConversionErrorBuilder<DevicePrecondition, crate::peer::executor::DevicePrecondition>;
         
-        crate::peer::executor::DevicePrecondition::new(value.device_id, value.clamp15, value.clamp30)
+        crate::peer::executor::DevicePrecondition::new(Uuid::parse_str(&value.device_id).unwrap(), value.clamp15, value.clamp30)
             .map_err(|cause| ErrorBuilder::message(cause.to_string()))
     }
 }

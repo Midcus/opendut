@@ -103,7 +103,9 @@ pub fn PeerConfigurator() -> impl IntoView {
                                     envs,
                                     ports,
                                     command,
-                                    args
+                                    args,
+                                    preconditions,
+                                    results_url
                                 } = executor {
                                     let volumes = volumes.into_iter()
                                         .map(|volume| {

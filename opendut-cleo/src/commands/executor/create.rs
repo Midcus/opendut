@@ -1,30 +1,34 @@
+use std::path::Path;
 use uuid::Uuid;
 
 use opendut_carl_api::carl::CarlClient;
-use opendut_types::peer::{PeerId};
-use opendut_types::peer::executor::{ContainerCommand, ContainerCommandArgument, ContainerDevice, ContainerEnvironmentVariable, ContainerImage, ContainerName, ContainerPortSpec, ContainerVolume, Engine, ExecutorDescriptor};
-
-use crate::commands::peer;
+use opendut_types::peer::PeerId;
+use opendut_types::peer::executor::{ContainerCommand, ContainerCommandArgument, ContainerDevice, ContainerEnvironmentVariable, ContainerImage, ContainerName, ContainerPortSpec, ContainerVolume, Engine, ExecutorDescriptor, ResultsUrl};
 use crate::{CreateOutputFormat, DescribeOutputFormat, EngineVariants};
 
 /// Create a container executor
 #[derive(clap::Parser)]
 pub struct CreateContainerExecutorCli {
     #[clap(subcommand)]
-    pub option: Option,
+    pub mode: Mode,
 }
 
 #[derive(clap::Parser)]
-pub enum Option {
-    JsonConfigString(JsonConfigString),
+pub enum Mode{
+    JsonConfig(JsonConfig),
     CommandLineArguments(CommandLineArguments),
 }
 
 #[derive(clap::Parser)]
-pub struct JsonConfigString {
-    ///Input file
-    #[clap(short, long)]
-    test_executor_config: String,
+pub struct JsonConfig {
+    #[clap(short, long, default_value = "")]
+    test_executor_json_file_path: String,
+}
+
+impl AsRef<Path> for JsonConfig {
+    fn as_ref(&self) -> &Path {
+        Path::new(&self.test_executor_json_file_path)
+    }
 }
 
 #[derive(clap::Parser)]
@@ -64,30 +68,46 @@ pub struct CommandLineArguments {
 impl CreateContainerExecutorCli {
     #[allow(clippy::too_many_arguments)]
     pub async fn execute(self, carl: &mut CarlClient, output: CreateOutputFormat) -> crate::Result<()> {
-        match self.option {
-            Some(Option::JsonConfigString(json_string)) => {
-                let executor_descriptor: ExecutorDescriptor = serde_json::from_str(json_string)?;
-                let peer_id = executor_descriptor.peer_id;
-                let mut peer_descriptor = carl.peers.get_peer_descriptor(peer_id).await
-                    .map_err(|_| format!("Failed to get peer with ID <{}>.", peer_id))?;   
-            }
-            Some(Option::CommandLineArguments(args)) => {
+        let peer_id;
+        let executor_descriptor:ExecutorDescriptor; 
+        match self.mode {
+            Mode::JsonConfig(test_executor_json_file_path) => {
+                let test_executor_config = std::fs::read_to_string(test_executor_json_file_path).map_err(|e| e.to_string())?;
+                executor_descriptor = match
+                    serde_json::from_str(&test_executor_config) {
+                        Ok(map) => { map }
+                        Err(error) => {
+                            return Err("Error parsing JSON: ".to_string() + &error.to_string());
+                        }
+                    };
+                
+                match &executor_descriptor {
+                    ExecutorDescriptor::Container { preconditions, .. } => {
+                        peer_id = PeerId::from(preconditions.device_preconditions[0].device_id());
+                    },
+                    ExecutorDescriptor::Executable => {
+                        return Err("Expected a Container ExecutorDescriptor, but got Executable".to_string());
+                    }
+                }
+                
+            },
+            Mode::CommandLineArguments(cmd_args)=> {
 
-                let peer_id = PeerId::from(args.peer_id);
+                peer_id = PeerId::from(cmd_args.peer_id);
 
-                let engine = match args.engine {
+                let engine = match cmd_args.engine {
                     EngineVariants::Docker => { Engine::Docker }
                     EngineVariants::Podman => { Engine::Podman }
                 };
 
-                let volumes = args.volumes.unwrap_or_default();
-                let devices = args.devices.unwrap_or_default();
-                let ports = args.ports.unwrap_or_default();
-                let args = args.args.unwrap_or_default();
+                let volumes = cmd_args.volumes.unwrap_or_default();
+                let devices = cmd_args.devices.unwrap_or_default();
+                let ports = cmd_args.ports.unwrap_or_default();
+                let args = cmd_args.args.unwrap_or_default();
 
                 let mut environment_variables = vec![];
 
-                for env in args.envs.unwrap_or_default() {
+                for env in cmd_args.envs.unwrap_or_default() {
                     if let Some((name, value)) = env.split_once('=') {
                         let env = ContainerEnvironmentVariable::new(name, value)
                             .map_err(|cause| cause.to_string())?;
@@ -95,21 +115,22 @@ impl CreateContainerExecutorCli {
                     }
                 };
 
-                let executor_descriptor = ExecutorDescriptor::Container {
+                executor_descriptor = ExecutorDescriptor::Container {
                     engine,
-                    name: args.name.unwrap_or_default(),
-                    image: args.image,
+                    name: cmd_args.name.unwrap_or_default(),
+                    image: cmd_args.image,
                     volumes,
                     devices,
                     envs: environment_variables,
                     ports,
-                    command: args.command.unwrap_or_default(),
+                    command: cmd_args.command.unwrap_or_default(),
                     args,
+                    preconditions: Default::default(),
+                    results_url: ResultsUrl::default(),
                 };
-
-                
             }
         }
+
         let mut peer_descriptor = carl.peers.get_peer_descriptor(peer_id).await
                     .map_err(|_| format!("Failed to get peer with ID <{}>.", peer_id))?;
 

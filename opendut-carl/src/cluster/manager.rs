@@ -586,6 +586,8 @@ mod test {
                     ports: vec![],
                     command: ContainerCommand::Default,
                     args: vec![],
+                    preconditions: Default::default(),
+                    results_url: Default::default()
                 }],
             },
         };
