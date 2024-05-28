@@ -21,7 +21,7 @@ pub enum Mode{
 
 #[derive(clap::Parser)]
 pub struct JsonConfig {
-    #[clap(short, long, default_value = "")]
+    #[clap(short, long, default_value = "sample_test_config.json", required = true, help = "File path to the JSON test execution configuration")]
     test_executor_json_file_path: String,
 }
 
@@ -71,8 +71,10 @@ impl CreateContainerExecutorCli {
         let peer_id;
         let executor_descriptor:ExecutorDescriptor; 
         match self.mode {
-            Mode::JsonConfig(test_executor_json_file_path) => {
-                let test_executor_config = std::fs::read_to_string(test_executor_json_file_path).map_err(|e| e.to_string())?;
+            Mode::JsonConfig(json_config) => {
+                println!("File path{:?}", json_config.test_executor_json_file_path);
+                let test_executor_config = std::fs::read_to_string(json_config.test_executor_json_file_path).map_err(|e| e.to_string())?;
+                
                 executor_descriptor = match
                     serde_json::from_str(&test_executor_config) {
                         Ok(map) => { map }
