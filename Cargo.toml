@@ -6,6 +6,7 @@ members = [
     "opendut-edgar",
     "opendut-edgar/netbird-client-api",
     "opendut-edgar/opendut-edgar-kernel-modules",
+    "opendut-edgar/restbus-simulation",
     "opendut-lea",
     "opendut-types",
     "opendut-util",
@@ -37,6 +38,7 @@ opendut-edgar = { path = "opendut-edgar" }
 opendut-netbird-client-api = { path = "opendut-edgar/netbird-client-api" }
 opendut-edgar-kernel-modules = { path = "opendut-edgar/opendut-edgar-kernel-modules" }
 opendut-vpn-netbird = { path = "opendut-vpn/opendut-vpn-netbird" }
+opendut-restbus-simulation = { path = "opendut-edgar/restbus-simulation" }
 opendut-types = { path = "opendut-types" }
 opendut-theo = { path = ".ci/docker/theo" }
 opendut-util = { path = "opendut-util" }
@@ -46,6 +48,7 @@ opendut-vpn = { path = "opendut-vpn" }
 anyhow = "1.0.79"
 assert_fs = "1.1.1"
 async-trait = "0.1.77"
+autosar-data = "0.9.0"
 axum = "0.6.20"
 axum-server = "0.5.1"
 axum-server-dual-protocol = "0.5.2"

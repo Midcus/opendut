@@ -17,6 +17,10 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 use opendut_carl_api::proto::services::peer_messaging_broker;
 use opendut_carl_api::proto::services::peer_messaging_broker::{ApplyPeerConfiguration, TracingContext};
 use opendut_carl_api::proto::services::peer_messaging_broker::downstream::Message;
+use opendut_restbus_simulation::arxml_parser::ArxmlParser;
+use opendut_restbus_simulation::arxml_utils::get_timed_can_frames_from_bus;
+use opendut_restbus_simulation::restbus_simulation::RestbusSimulation;
+use opendut_restbus_simulation::restbus_structs::TimedCanFrame;
 use opendut_types::cluster::{ClusterAssignment, PeerClusterAssignment};
 use opendut_types::peer::configuration::{PeerConfiguration, PeerConfiguration2};
 use opendut_types::peer::PeerId;
@@ -110,6 +114,29 @@ pub async fn create(self_id: PeerId, settings: LoadedConfig) -> anyhow::Result<(
         target_bandwidth_kbit_per_second,
         rperf_backoff_max_elapsed_time,
     };
+    
+    let restbus_simulation: RestbusSimulation = RestbusSimulation {};
+    
+    let restbus_simulation_enabled = settings.config.get::<bool>("restbus-simulation.enabled")?;
+
+    if restbus_simulation_enabled {
+        let arxml_file_path = settings.config.get::<String>("restbus-simulation.arxml.path")?;
+        let arxml_serialization = settings.config.get::<bool>("restbus-simulation.arxml.serialization")?;
+        let target_cluster = settings.config.get::<String>("restbus-simulation.simulation.target.cluster")?;
+        let ifname = settings.config.get::<String>("restbus-simulation.simulation.interface")?;
+        
+        let arxml_parser: ArxmlParser = ArxmlParser {};
+
+        if let Some(can_clusters) = arxml_parser.parse_file(&arxml_file_path, arxml_serialization) {
+            // Play all CAN frames from the target bus periodcically (only periodic frames are sent periodically) to the bus to which ifname is connected to.
+            let timed_can_frames: Vec<TimedCanFrame> = get_timed_can_frames_from_bus(&can_clusters, target_cluster);
+
+            match restbus_simulation.play_all(&timed_can_frames, &ifname) {
+                Ok(_val) => info!("Successfully established restbus simulation"),
+                Err(error) => info!("Could not establish restbus simulation because: {}", error)
+            }
+        }
+    }
 
     let timeout_duration = Duration::from_millis(settings.config.get::<u64>("carl.disconnect.timeout.ms")?);
 
@@ -220,6 +247,7 @@ async fn apply_peer_configuration(message: ApplyPeerConfiguration, context: Opti
             let _span = span.enter();
 
             info!("Received configuration: {configuration:?}");
+            println!("Received configuration: {configuration:?}");
             match PeerConfiguration::try_from(configuration) {
                 Err(error) => error!("Illegal PeerConfiguration: {error}"),
                 Ok(configuration) => {
