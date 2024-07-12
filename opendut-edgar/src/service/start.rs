@@ -247,7 +247,6 @@ async fn apply_peer_configuration(message: ApplyPeerConfiguration, context: Opti
             let _span = span.enter();
 
             info!("Received configuration: {configuration:?}");
-            println!("Received configuration: {configuration:?}");
             match PeerConfiguration::try_from(configuration) {
                 Err(error) => error!("Illegal PeerConfiguration: {error}"),
                 Ok(configuration) => {
