@@ -250,22 +250,24 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "autosar-data"
-version = "0.9.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "220cf40add8815bc13a6c409a2ad62304ec0354e149bbcfe3c3516a1cf3f1726"
+checksum = "966f7a3f9eed49783f5ace2fd90aa81dc8328af2a7f6b14e1b93bbcddc16f48f"
 dependencies = [
  "autosar-data-specification",
+ "fxhash",
+ "indexmap 2.3.0",
+ "num-traits",
  "parking_lot 0.12.3",
- "rustc-hash",
  "smallvec",
  "thiserror",
 ]
 
 [[package]]
 name = "autosar-data-specification"
-version = "0.9.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b10b95c5e9c2cf046261b1d71e4ef6d063569378ac6a95687a9a88fb053852d"
+checksum = "29aab7eb036d0fdaa696ea39ba87c68c913567e90ef86b58f7acc94fb1966d60"
 dependencies = [
  "num-derive",
  "num-traits",
@@ -1633,6 +1635,15 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "fxhash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]
@@ -3113,7 +3124,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.66",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -3525,7 +3536,7 @@ name = "opendut-restbus-simulation"
 version = "0.1.0"
 dependencies = [
  "autosar-data",
- "nix 0.27.1",
+ "nix 0.29.0",
  "serde",
  "serde_json",
  "tokio",
@@ -5430,9 +5441,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.11.2"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dccd0940a2dcdf68d092b8cbab7dc0ad8fa938bf95787e1b916b0e3d0e8e970"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "socket2"
